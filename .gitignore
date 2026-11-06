@@ -1,0 +1,8 @@
+# Your own data never goes into the repository
+data/
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec
+.DS_Store

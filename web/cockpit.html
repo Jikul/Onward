@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/png" href="/favicon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Onward cockpit</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root { --bg: #151a14; --panel: #1f261d; --line: #333d2e; --ink: #f4f2ec; --mute: #a9b0a3; --lime: #cfe98a; --good: #cfe98a; --warn: #f3d27a; --bad: #f2a48c; --sky: #9fc0cc;
+  --serif: "Instrument Serif", Georgia, serif; --mono: "JetBrains Mono", ui-monospace, monospace; --sans: "Inter Tight", system-ui, sans-serif; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.4 var(--sans); min-height: 100%; }
+body { padding: max(14px, env(safe-area-inset-top)) 18px 18px; display: flex; flex-direction: column; gap: 12px; min-height: 100vh; }
+.bar { display: flex; align-items: center; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.bar .phase { font: 400 12px var(--mono); text-transform: uppercase; letter-spacing: 1px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar .leg { color: var(--mute); font: 400 12px var(--mono); text-transform: uppercase; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--bad); flex: none; }
+.dot.ok { background: var(--lime); box-shadow: 0 0 0 3px #3a4a24; }
+button, .lnk { background: transparent; border: 1px solid var(--line); color: var(--ink); border-radius: 10px; padding: 10px 14px; font: 500 14px var(--sans); text-decoration: none; cursor: pointer; min-height: 44px; }
+#send { background: var(--lime); color: #1b2119; border-color: var(--lime); font-weight: 600; }
+.panel { background: var(--panel); border-radius: 18px; padding: 18px 20px; }
+.guide .to { font: 400 11px var(--mono); color: var(--lime); text-transform: uppercase; letter-spacing: 1px; }
+.guide .to b { font: 400 clamp(40px, 8vw, 64px)/1 var(--serif); color: var(--ink); display: block; letter-spacing: 0; text-transform: none; margin-top: 4px; }
+.guide .to small { font: 400 16px var(--sans); color: var(--mute); text-transform: none; letter-spacing: 0; }
+.nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+.num small { display: block; color: var(--mute); font: 400 11px var(--mono); text-transform: uppercase; letter-spacing: 1px; }
+.num b { font: 400 clamp(44px, 10vw, 84px)/1 var(--serif); color: var(--lime); }
+.num b em { font: 400 .3em var(--mono); color: var(--mute); margin-left: 4px; font-style: normal; }
+.xtk { margin-top: 10px; font-size: 17px; color: var(--warn); }
+.xtk.far { color: var(--bad); }
+.then { margin-top: 6px; color: var(--mute); }
+.gauges { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.g { padding: 10px 12px 10px 0; }
+.g + .g { padding-left: 12px; border-left: 1px solid var(--line); }
+.g small { display: block; color: var(--mute); font: 400 11px var(--mono); letter-spacing: 1px; }
+.g b { font: 400 clamp(26px, 5vw, 40px)/1.05 var(--serif); }
+.g.hot b, .g.hot small { color: var(--bad); }
+.arr h2, .pre h2 { margin: 0 0 8px; font: 400 11px var(--mono); text-transform: uppercase; letter-spacing: 1.2px; color: var(--lime); }
+.big { font: 400 clamp(32px, 6vw, 48px)/1.05 var(--serif); }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 8px; font-size: 16px; color: var(--mute); }
+.facts span b { font: 500 17px var(--sans); color: var(--ink); }
+.msgs { display: flex; flex-direction: column; }
+.msg { font-size: 17px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.msg.warn { color: var(--warn); } .msg.bad { color: var(--bad); } .msg.good { color: var(--lime); }
+.msg time { color: var(--mute); font: 400 12px var(--mono); margin-right: 10px; }
+.ok { color: var(--lime) !important; } .tight { color: var(--warn) !important; } .no { color: var(--bad) !important; }
+.verdict { font: 400 12px var(--mono); text-transform: uppercase; letter-spacing: 1px; }
+.score { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+.grade { font: 400 60px var(--serif); width: 104px; height: 104px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: .9; }
+.grade small { font: 400 13px var(--mono); }
+.gA { background: var(--lime); color: #1b2119; } .gB { background: #dfe9c8; color: #1b2119; } .gC { background: #f3e3b5; color: #6b4708; } .gD { background: #f3dacf; color: #8a3220; }
+.notes { color: var(--mute); font-size: 16px; margin-top: 10px; }
+.empty { color: var(--mute); font: 400 34px/1.15 var(--serif); text-align: center; margin-top: 18vh; }
+@media (max-width: 600px) { .gauges { grid-template-columns: repeat(3, 1fr); } .g:nth-child(4) { padding-left: 0; border-left: 0; } }
+</style>
+</head>
+<body>
+<div class="bar"><i class="dot" id="dot"></i><span class="phase" id="phase">Connecting…</span><span class="leg" id="leg"></span>
+  <button id="voice">Voice off</button><a class="lnk" href="/">Full app</a></div>
+<div id="main"></div>
+<script src="voice.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const n = (v, d = 0) => (v == null ? "–" : Number(v).toFixed(d));
+const h3 = (v) => String(v).padStart(3, "0");
+const PH = { preflight: "On the ground", air: "Flying", rollout: "Rolling out", taxi_in: "Landed: taxi in", done: "Leg complete" };
+let S = null, voiceOn = false;
+try { voiceOn = localStorage.getItem("onward-cockpit-voice") === "1"; } catch (e) {}
+let wake = null;
+async function keepAwake() { try { if ("wakeLock" in navigator && !wake) { wake = await navigator.wakeLock.request("screen"); wake.onrelease = () => (wake = null); } } catch (e) {} }
+document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && keepAwake());
+
+$("#voice").onclick = () => {
+  voiceOn = !voiceOn; try { localStorage.setItem("onward-cockpit-voice", voiceOn ? "1" : "0"); } catch (e) {}
+  Voice.set(voiceOn); if (voiceOn) Voice.say("Callouts on.", true); paintVoice(); keepAwake();
+};
+function paintVoice() { $("#voice").textContent = voiceOn ? "Voice on" : "Voice off"; }
+
+function preflight(j) {
+  const p = j.plan || {}, perf = p.performance || {}, w = p.route_weather, rw = p.dep_runway;
+  const fq = (l) => (l && l.length ? l.map((f) => `${esc(f.type)} <b>${f.mhz}</b>`).join(" · ") : "none listed");
+  const vd = w && { go: ["Looks good", "ok"], care: ["Flyable, with care", "tight"], think_twice: ["Think twice", "no"] }[w.verdict];
+  return `<div class="panel pre"><h2>${esc(j.title)}</h2>
+    <div class="big">${esc(j.dep.code || j.dep.ident)} → ${esc(j.dest.code || j.dest.ident)}</div>
+    <div class="facts"><span>Cruise <b>${(p.cruise_alt || j.cruise_alt || 0).toLocaleString()} ft</b></span><span><b>${p.total_nm || j.distance_nm} nm</b></span>
+      ${rw ? `<span>Depart RWY <b>${esc(rw.end)}</b></span>` : ""}
+      ${perf.takeoff ? `<span>Takeoff <b class="${perf.takeoff.status || ""}">${perf.takeoff.need_ft.toLocaleString()} ft</b>${perf.takeoff.runway_ft ? ` of ${perf.takeoff.runway_ft.toLocaleString()}` : ""}</span>` : ""}
+      ${p.fuel ? `<span>Fuel <b>${p.fuel.total} gal</b></span>` : ""}</div>
+    ${vd ? `<div class="facts"><span class="verdict ${vd[1]}">${vd[0]}</span><span>${esc((w.bad[0] || w.care[0] || w.good[0] || ""))}</span></div>` : ""}
+    <div class="facts"><span>Radio ${fq(p.freqs && p.freqs.dep)}</span></div>
+    ${j.plan && !j.plan_sent ? `<div style="margin-top:12px"><button id="send">Send flight plan to the sim</button></div>` : j.plan_sent ? `<div class="facts ok">Flight plan sent to the sim.</div>` : ""}</div>`;
+}
+function guide(g) {
+  if (!g) return "";
+  return `<div class="panel guide"><div class="to">Next ${g.index}/${g.count}<b>${esc(g.ident || "")}</b>${g.kind !== "airport" && g.name ? `<small>${esc(g.kind === "nav" ? g.name.replace((g.ident || "") + " ", "") : g.name)}</small>` : ""}</div>
+    <div class="nums"><div class="num"><small>Bearing</small><b>${h3(g.brg_mag)}<em>°M</em></b></div><div class="num"><small>Distance</small><b>${g.nm}<em>nm</em></b></div><div class="num"><small>Time</small><b>${g.ete_min != null ? Math.round(g.ete_min) : "–"}<em>min</em></b></div></div>
+    ${g.xtk != null && g.xtk >= 0.3 ? `<div class="xtk ${g.xtk >= 1.5 ? "far" : ""}">${g.xtk} nm ${esc(g.xtk_side)} of course ${h3(g.course_mag)}°M</div>` : ""}
+    ${g.then ? `<div class="then">Then ${esc(g.then.ident || "")}${g.then.kind === "visual" && g.then.name ? " · " + esc(g.then.name) : ""}</div>` : ""}</div>`;
+}
+function arrival(a, perf) {
+  const r = a.runway;
+  return `<div class="panel arr"><h2>Arrival · ${esc(a.field)}</h2>
+    ${r ? `<div class="big">RWY ${esc(r.end)} <span style="color:var(--mute);font-size:.6em">${r.hdg_mag != null ? h3(r.hdg_mag) + "°M · " : ""}${r.length.toLocaleString()} ft ${esc(r.surface)}</span></div>` : ""}
+    <div class="facts"><span>Circuit <b>${a.tpa.toLocaleString()} ft</b></span><span>Field <b>${a.elev.toLocaleString()} ft</b></span>
+      ${r && r.headwind != null ? `<span>${r.headwind >= 0 ? `Headwind <b>${r.headwind} kt</b>` : `<b class="no">Tailwind ${-r.headwind} kt</b>`}, across <b>${r.crosswind} kt</b></span>` : ""}
+      ${perf && perf.landing ? `<span>Landing <b class="${perf.landing.status || ""}">${perf.landing.need_ft.toLocaleString()} ft</b></span>` : ""}
+      ${S.aircraft && S.aircraft.vref ? `<span>Approach <b>${S.aircraft.vref} kt</b></span>` : ""}</div>
+    ${a.join ? `<div class="facts"><span>${esc(a.join)}</span></div>` : ""}
+    <div class="facts"><span>${(a.freqs || []).map((f) => `${esc(f.type)} <b>${f.mhz}</b>`).join(" · ") || "No frequencies listed"}</span></div></div>`;
+}
+function score(r) {
+  const c = r.landing;
+  if (!c) return `<div class="panel"><div class="big">${esc(r.from)} → ${esc(r.to)}</div><div class="notes">${esc(r.text)}</div></div>`;
+  return `<div class="panel"><h2 style="margin:0 0 10px;font-size:14px;letter-spacing:1.5px;color:var(--mute);text-transform:uppercase">Landing at ${esc(r.to_name)}</h2>
+    <div class="score"><div class="grade g${c.grade}">${c.grade}<small>${c.score}</small></div>
+    <div class="facts" style="flex:1"><span>Sink <b>${c.fpm} fpm</b></span><span>Speed <b>${c.ias} kt</b> (${c.ias - c.vref >= 0 ? "+" : ""}${c.ias - c.vref})</span>
+      ${c.runway ? `<span>Past threshold <b>${(c.past_threshold_ft || 0).toLocaleString()} ft</b></span><span>Centerline <b>${c.centerline_ft == null ? "off" : c.centerline_ft + " ft " + esc(c.side)}</b></span>` : ""}
+      ${r.gate ? `<span>500 ft <b class="${r.gate.stable ? "ok" : "no"}">${r.gate.stable ? "stable" : "not stable"}</b></span>` : ""}</div></div>
+    <div class="notes">${c.best ? "New personal best here. " : ""}${(c.notes || []).map(esc).join(". ")}</div>
+    <div style="margin-top:12px"><a class="lnk" href="/">Open the debrief</a></div></div>`;
+}
+function render() {
+  if (!S || !S.ready) { $("#phase").textContent = "Onward is starting…"; return; }
+  const live = S.live || {}, f = live.flight, s = live.sample || {}, j = S.job;
+  $("#dot").classList.toggle("ok", !!live.connected);
+  $("#phase").textContent = !live.connected ? "Waiting for the sim" : f ? PH[f.phase] || f.phase : "No leg in progress";
+  $("#leg").textContent = j ? `${j.dep.code || j.dep.ident} → ${j.dest.code || j.dest.ident}${f && f.to_dest_nm != null ? ` · ${f.to_dest_nm} nm` : ""}` : "";
+  Voice.set(voiceOn);
+  Voice.feed(f ? f.msgs : null);
+  let h = "";
+  if (S.last_result && !j) h += score(S.last_result);
+  if (!j) { $("#main").innerHTML = h || `<div class="empty">No leg in progress.<br>Pick one in the full app and it shows up here.</div>`; return; }
+  const ex = (f && f.exceed) || [];
+  const g = (l, v, hot) => `<div class="g ${hot ? "hot" : ""}"><small>${l}</small><b>${v}</b></div>`;
+  const gauges = `<div class="gauges">${g("IAS", n(s.ias), ex.some((e) => ["vne", "vne_lite", "vfe", "vle"].includes(e)))}${g("ALT", n(s.alt))}${g("V/S", n(s.vs))}${g("GS", n(s.gs))}${g("AGL", n(s.agl))}</div>`;
+  if (!f || f.phase === "preflight") h += preflight(j);
+  else if (f.near_dest && j.plan && j.plan.arrival) h += arrival(j.plan.arrival, j.plan.performance) + guide(f.guide);
+  else h += guide(f.guide);
+  h += gauges;
+  if (f && f.next_poi && f.phase === "air") h += `<div class="panel" style="font-size:18px">Next sight: <b>${esc(f.next_poi.name)}</b>, ${f.next_poi.nm} nm, bearing ${h3(f.next_poi.brg)}°</div>`;
+  if (f && f.active_failures && f.active_failures.length) h += `<div class="msg bad">Active failure: ${f.active_failures.map(esc).join(", ")}</div>`;
+  if (f && f.msgs.length) h += `<div class="msgs">${f.msgs.slice(-3).reverse().map((m) => `<div class="msg ${m.level}"><time>${m.t}</time>${esc(m.text)}</div>`).join("")}</div>`;
+  $("#main").innerHTML = h;
+  const sb = $("#send"); if (sb) sb.onclick = async () => { sb.disabled = true; sb.textContent = "Sending…"; await fetch("/api/load_plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }); };
+}
+async function poll() { try { S = await (await fetch("/api/state" + (voiceOn ? "?cockpit=1" : ""))).json(); render(); } catch (e) { $("#dot").classList.remove("ok"); $("#phase").textContent = "Onward isn't running"; } }
+paintVoice(); keepAwake(); poll(); setInterval(poll, 1000);
+</script>
+</body>
+</html>

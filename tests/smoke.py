@@ -1,0 +1,141 @@
+"""Quick checks before a release: the pure calculations, then every endpoint of a demo server.
+
+    python tests/smoke.py            (starts its own demo server on port 8699 with a temporary data folder)
+"""
+import json
+import os
+import subprocess
+import sys
+import tempfile
+import time
+import urllib.request
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+os.environ.setdefault("ONWARD_DATA", tempfile.mkdtemp(prefix="onward-test-"))
+fails = []
+
+
+def check(name, cond, detail=""):
+    print(("ok   " if cond else "FAIL ") + name + (f"  ({detail})" if detail and not cond else ""))
+    if not cond:
+        fails.append(name)
+
+
+# ---------- calculations ----------
+import briefing  # noqa: E402
+import planner  # noqa: E402
+import updater  # noqa: E402
+
+check("gfp coordinates", planner._gfp_coord(67.50333, -133.78167) == "N67302W133469" and planner._gfp_coord(-33.9461, 151.1772) == "S33568E151106")
+job = {"dep": {"code": "LPBR", "lat": 41.587, "lon": -8.445}, "dest": {"code": "PT-0021", "lat": 41.8, "lon": -7.2},
+       "plan": {"route": [{}, {"lat": 41.7, "lon": -8.1}, {}]}}
+check("gfp file", planner.gfp(job) == "FPN/RI:F:LPBR:F:N41420W008060:F:N41480W007120", planner.gfp(job))
+check("version compare", updater.newer("0.26.0", "0.25.2") and not updater.newer("0.25.2", "0.25.10"))
+col = [{"ft": 300, "t": 8, "rh": 70, "ws": 10, "wd": 270, "cc": 0}, {"ft": 2500, "t": 4, "rh": 80, "ws": 18, "wd": 270, "cc": 0},
+       {"ft": 5000, "t": 0, "rh": 95, "ws": 25, "wd": 280, "cc": 90}, {"ft": 10000, "t": -8, "rh": 92, "ws": 35, "wd": 290, "cc": 80},
+       {"ft": 14000, "t": -16, "rh": 50, "ws": 40, "wd": 290, "cc": 0}]
+hz = briefing.hazards(col, 300, 30, 1500, 3)
+check("icing band found", bool(hz["ice"]) and hz["ice"][0][0] <= 5500, hz["ice"])
+check("gusts and storms", hz["low_turb"] is not None and hz["storm"] == "possible")
+check("cloud layers", bool(briefing.layers(col, 300)) and briefing.layers(col, 300)[0][2] >= 80)
+try:
+    import terrain
+    h = terrain.elevation_m(40.3217, -7.6114)
+    check("terrain tiles (Serra da Estrela ~1993 m)", 1900 < h < 2050, h)
+except Exception as e:  # offline is not a code failure
+    print("skip terrain tiles:", e)
+
+# ---------- endpoints ----------
+port = 8699
+srv = subprocess.Popen([sys.executable, os.path.join(ROOT, "server.py"), "--demo", "--port", str(port), "--no-browser", "--start", "KHAF"],
+                       cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+B = f"http://localhost:{port}"
+
+
+def get(p, raw=False):
+    with urllib.request.urlopen(B + p, timeout=120) as r:
+        body = r.read()
+        return body if raw else json.loads(body)
+
+
+def post(p, b):
+    req = urllib.request.Request(B + p, data=json.dumps(b).encode(), headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=240) as r:
+        return json.loads(r.read())
+
+
+try:
+    for _ in range(180):
+        try:
+            if get("/api/state").get("ready"):
+                break
+        except Exception:
+            pass
+        time.sleep(2)
+    st = get("/api/state")
+    check("server ready", st.get("ready"), st.get("error"))
+    check("page", b"ONWARD" in get("/", raw=True))
+    check("cockpit page", b"<html" in get("/cockpit.html", raw=True).lower())
+    check("credits", "OurAirports" in get("/api/credits").get("credits", ""))
+    post("/api/generate", {})
+    for _ in range(90):
+        st = get("/api/state")
+        if st["offers"] and not st["gen"]["running"]:
+            break
+        time.sleep(2)
+    check("offers", len(st["offers"]) >= 8, len(st["offers"]))
+    oid = st["offers"][0]["id"]
+    plan = get(f"/api/plan?id={oid}")["plan"]
+    check("plan profile", plan["profile"]["msa"] > 0 and plan["profile"]["terrain"])
+    check("plan weather", plan["profile"].get("wx") in ("ok", "none"))
+    check("pln", b"<FlightPlan.FlightPlan>" in get(f"/api/pln?id={oid}", raw=True))
+    check("gfp download", get(f"/api/gfp?id={oid}", raw=True).startswith(b"FPN/RI:"))
+    check("navlog", len(get(f"/api/navlog?id={oid}", raw=True)) > 500)
+    check("route ideas", len(get(f"/api/ideas?id={oid}").get("ideas", [])) >= 3)
+    r = post("/api/replan", {"id": oid, "opts": {"cruise_alt": 6500}})
+    check("replan", not r.get("error"), r.get("error"))
+    s, w, n, e = 40.5, -9.5, 42.5, -7.0
+    check("metars", "metars" in get(f"/api/wx/metars?s={s}&w={w}&n={n}&e={e}"))
+    check("sigmets", "sigmets" in get("/api/wx/sigmets"))
+    g = get(f"/api/wx/grid?s={s}&w={w}&n={n}&e={e}&alt=5000")
+    check("winds grid", "points" in g, g.get("error"))
+    c = get(f"/api/wx/cond?s={s}&w={w}&n={n}&e={e}")
+    check("flying conditions", "grid" in c, c.get("error"))
+    check("satellite time", "eumetsat" in get("/api/wx/sat"))
+    check("pois", "pois" in get(f"/api/pois?s={s}&w={w}&n={n}&e={e}"))
+    home = get("/api/trip/home")
+    check("trip home", "stats" in home and "ranges" in home)
+    check("trip map", "highlights" in get(f"/api/trip/map?s={s}&w={w}&n={n}&e={e}&z=9"))
+    check("trip place", "place" in get("/api/trip/place?lat=41.2&lon=-8.6"))
+    t = post("/api/trip", {"action": "preview", "ident": "LPFR"})
+    check("trip preview", t.get("trip") and len(t["trip"]["legs"]) >= 2, t.get("error"))
+    check("airport search", get("/api/apsearch?q=faro")["results"])
+    # fly a demo leg end to end
+    check("accept", not post("/api/accept", {"id": oid}).get("error"))
+    get(f"/api/plan?id={oid}")
+    post("/api/demo", {"action": "fly", "fpm": 150, "rough": False, "duration": 25})
+    for _ in range(60):
+        f = (get("/api/state").get("live") or {}).get("flight") or {}
+        if f.get("landings") and f.get("phase") != "air":
+            break
+        time.sleep(2)
+    time.sleep(4)
+    r = post("/api/finish", {})
+    check("finish leg", not r.get("error"), r.get("error"))
+    res = get("/api/state").get("last_result") or {}
+    check("debrief with landing grade", (res.get("landing") or {}).get("grade") in ("A", "B", "C", "D"))
+    j = get("/api/journal")
+    check("journal entry", any(e.get("type") == "leg" for e in j["journal"]))
+    check("history", get("/api/history")["legs"])
+finally:
+    srv.terminate()
+    try:
+        out = srv.communicate(timeout=10)[0].decode("utf-8", "replace")
+        errs = [l for l in out.splitlines() if "Traceback" in l or "error:" in l.lower()]
+        check("no server tracebacks", not any("Traceback" in l for l in errs), "\n".join(errs[-5:]))
+    except Exception:
+        pass
+
+print("\nALL OK" if not fails else f"\n{len(fails)} FAILED: " + ", ".join(fails))
+sys.exit(1 if fails else 0)
