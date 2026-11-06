@@ -28,10 +28,32 @@ import planner  # noqa: E402
 import updater  # noqa: E402
 
 check("gfp coordinates", planner._gfp_coord(67.50333, -133.78167) == "N67302W133469" and planner._gfp_coord(-33.9461, 151.1772) == "S33568E151106")
-job = {"dep": {"code": "LPBR", "lat": 41.587, "lon": -8.445}, "dest": {"code": "PT-0021", "lat": 41.8, "lon": -7.2},
-       "plan": {"route": [{}, {"lat": 41.7, "lon": -8.1}, {}]}}
-check("gfp file", planner.gfp(job) == "FPN/RI:F:LPBR:F:N41420W008060:F:N41480W007120", planner.gfp(job))
+job = {"dep": {"code": "KHAF", "lat": 37.5134, "lon": -122.501}, "dest": {"code": "CA-0001", "lat": 38.3, "lon": -121.0},
+       "plan": {"route": [{}, {"lat": 37.7, "lon": -122.2}, {}]}}
+check("gfp file", planner.gfp(job) == "FPN/RI:F:KHAF:F:N37420W122120:F:N38180W121000", planner.gfp(job))
 check("version compare", updater.newer("0.26.0", "0.25.2") and not updater.newer("0.25.2", "0.25.10"))
+
+
+def _frozen_check(manifest):  # the packaged app reads stable.json and points to flightsim.to, never GitHub
+    import data as _d
+    u, was = updater.Updater({}), _d.FROZEN
+    asked = []
+    u._get = lambda url, **k: (asked.append(url), json.dumps(manifest).encode())[1]
+    _d.FROZEN = True
+    try:
+        st = dict(u.check())
+        st["msg"] = u.apply()
+    finally:
+        _d.FROZEN = was
+    return st, asked
+
+
+st, asked = _frozen_check({"version": "99.0.0", "url": "https://flightsim.to/file/1/onward"})
+check("packaged app checks stable.json", asked and asked[0].split("?")[0].endswith("/main/stable.json"), asked)
+check("packaged app points to flightsim.to", st["available"] and st["url"].startswith("https://flightsim.to")
+      and "flightsim.to" in st["msg"] and "github" not in st["msg"].lower(), st)
+st, _ = _frozen_check({"version": "", "url": ""})
+check("no stable version yet means no update", not st["available"], st)
 col = [{"ft": 300, "t": 8, "rh": 70, "ws": 10, "wd": 270, "cc": 0}, {"ft": 2500, "t": 4, "rh": 80, "ws": 18, "wd": 270, "cc": 0},
        {"ft": 5000, "t": 0, "rh": 95, "ws": 25, "wd": 280, "cc": 90}, {"ft": 10000, "t": -8, "rh": 92, "ws": 35, "wd": 290, "cc": 80},
        {"ft": 14000, "t": -16, "rh": 50, "ws": 40, "wd": 290, "cc": 0}]
@@ -41,8 +63,8 @@ check("gusts and storms", hz["low_turb"] is not None and hz["storm"] == "possibl
 check("cloud layers", bool(briefing.layers(col, 300)) and briefing.layers(col, 300)[0][2] >= 80)
 try:
     import terrain
-    h = terrain.elevation_m(40.3217, -7.6114)
-    check("terrain tiles (Serra da Estrela ~1993 m)", 1900 < h < 2050, h)
+    h = terrain.elevation_m(39.09, -120.04)
+    check("terrain tiles (Lake Tahoe ~1897 m)", 1850 < h < 1950, h)
 except Exception as e:  # offline is not a code failure
     print("skip terrain tiles:", e)
 
@@ -107,10 +129,10 @@ try:
     home = get("/api/trip/home")
     check("trip home", "stats" in home and "ranges" in home)
     check("trip map", "highlights" in get(f"/api/trip/map?s={s}&w={w}&n={n}&e={e}&z=9"))
-    check("trip place", "place" in get("/api/trip/place?lat=41.2&lon=-8.6"))
-    t = post("/api/trip", {"action": "preview", "ident": "LPFR"})
+    check("trip place", "place" in get("/api/trip/place?lat=37.5&lon=-122.5"))
+    t = post("/api/trip", {"action": "preview", "ident": "KSBA"})
     check("trip preview", t.get("trip") and len(t["trip"]["legs"]) >= 2, t.get("error"))
-    check("airport search", get("/api/apsearch?q=faro")["results"])
+    check("airport search", get("/api/apsearch?q=half%20moon")["results"])
     # fly a demo leg end to end
     check("accept", not post("/api/accept", {"id": oid}).get("error"))
     get(f"/api/plan?id={oid}")

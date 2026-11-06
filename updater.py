@@ -1,5 +1,8 @@
 """Updates from GitHub: check version.json, download the new code, keep a copy of the old one, restart.
 
+The packaged app (Onward.exe) never downloads anything itself. It reads stable.json, the version that is on
+flightsim.to, and tells you to get it there.
+
 Only program files are replaced. Your data folder (career, journal, photos, settings, caches) is never touched.
 """
 import io
@@ -17,6 +20,7 @@ PROGRAM_DIR = os.path.dirname(os.path.abspath(__file__))
 BACKUPS = os.path.join(data.DATA, "backups")
 KEEP = {"data", ".git", "__pycache__", "dist", "build"}   # never overwritten or removed
 RESTART_CODE = 3                                         # start.bat starts Onward again on this exit code
+LISTING = "https://flightsim.to"                         # used until stable.json has the listing address
 
 
 def _parse(v):
@@ -35,7 +39,7 @@ class Updater:
     def __init__(self, settings, log=print):
         self.settings, self.log = settings, log
         self.status = {"current": version.VERSION, "latest": None, "notes": [], "available": False, "checked": None,
-                       "error": None, "busy": False, "frozen": data.FROZEN, "backups": self.backups()}
+                       "error": None, "busy": False, "frozen": data.FROZEN, "backups": self.backups(), "url": None}
 
     # ---------- where from ----------
     def repo(self):
@@ -53,10 +57,11 @@ class Updater:
 
     def _manifest(self):
         repo, br = self.repo(), version.BRANCH
+        name = "stable.json" if data.FROZEN else "version.json"  # the packaged app only hears about flightsim.to versions
         if (self.settings.get("update_token") or "").strip():  # private repository: go through the API
-            raw = self._get(f"https://api.github.com/repos/{repo}/contents/version.json?ref={br}", accept="application/vnd.github.raw")
+            raw = self._get(f"https://api.github.com/repos/{repo}/contents/{name}?ref={br}", accept="application/vnd.github.raw")
         else:
-            raw = self._get(f"https://raw.githubusercontent.com/{repo}/{br}/version.json?t={int(time.time())}")
+            raw = self._get(f"https://raw.githubusercontent.com/{repo}/{br}/{name}?t={int(time.time())}")
         return json.loads(raw)
 
     def _zip(self):
@@ -70,10 +75,13 @@ class Updater:
         st = self.status
         try:
             m = self._manifest()
-            st.update(latest=m.get("version"), notes=m.get("notes") or [], date=m.get("date"), error=None,
-                      available=newer(m.get("version", "0"), version.VERSION), checked=time.strftime("%Y-%m-%d %H:%M"))
+            latest = m.get("version") or None
+            st.update(latest=latest, notes=m.get("notes") or [], date=m.get("date"), error=None,
+                      available=bool(latest) and newer(latest, version.VERSION), checked=time.strftime("%Y-%m-%d %H:%M"),
+                      url=(m.get("url") or LISTING) if data.FROZEN else None)
             if st["available"]:
-                self.log(f"Onward {m['version']} is available (you have {version.VERSION}).")
+                where = " on flightsim.to" if data.FROZEN else ""
+                self.log(f"Onward {latest} is available{where} (you have {version.VERSION}).")
         except Exception as e:
             msg = f"Couldn't find Onward at github.com/{self.repo()}." if "404" in str(e) else f"Couldn't check for updates ({e})."
             st.update(error=msg, checked=time.strftime("%Y-%m-%d %H:%M"))
@@ -115,7 +123,7 @@ class Updater:
     def apply(self):
         """Download and install the latest version. Returns an error message or None (then restart)."""
         if data.FROZEN:
-            return f"This is the packaged app: download the new version from https://github.com/{self.repo()}/releases"
+            return f"This is the packaged app: download the new version from flightsim.to ({self.status.get('url') or LISTING})."
         if os.path.isdir(os.path.join(PROGRAM_DIR, ".git")):
             return "This copy of Onward is a git checkout. Update it with git pull instead."
         self.status["busy"] = True

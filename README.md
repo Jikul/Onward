@@ -6,9 +6,9 @@ Everything it uses is free: airfields, navaids and frequencies from OurAirports,
 
 ## Install (sim PC)
 
-**The easy way: the Windows app.** Download `Onward-x.y.z-windows.zip` from the releases page (https://github.com/onward-sim/Onward/releases), unzip it anywhere and double-click **Onward.exe**. No Python needed. Your career and settings live in `%LOCALAPPDATA%\Onward`, so you can replace the program folder with a new version at any time.
+**The easy way: the Windows app.** Download Onward from flightsim.to, unzip it anywhere and double-click **Onward.exe**. No Python needed. Your career and settings live in `%LOCALAPPDATA%\Onward`, so you can replace the program folder with a new version at any time. The zip also holds the complete source code.
 
-**From source** (gets updates from inside the app):
+**From source** (gets updates from inside the app). You get the newest changes as soon as they're made, so it can be a little rougher. The Windows app on flightsim.to only gets versions that have been tried in the sim first.
 
 1. Install **Python 3.11 or newer** from https://www.python.org/downloads/ . During the install, tick **"Add python.exe to PATH"**.
 2. Unzip Onward anywhere, for example `Documents\Onward`.
@@ -22,7 +22,7 @@ To use an iPad or the Mac as the screen, open `http://<sim PC's IP address>:8642
 
 ## Updates
 
-Onward checks for a new version when it starts. When there is one (and you run it from source), a note appears at the top: press **Update now** and it downloads the new version, installs it and restarts by itself. You can also check from **Settings › Updates**, where you'll see what's new and can go back to the previous version if something isn't right.
+Onward checks for a new version when it starts. When you run it from source, a note appears at the top when there is one: press **Update now** and it downloads the new version, installs it and restarts by itself. The Windows app only tells you about versions that are on flightsim.to, and you download those from there. You can also check from **Settings › Updates**, where you'll see what's new and can go back to the previous version if something isn't right.
 
 Updates only replace the program files. Your career, journal, photos and settings live in the `data` folder, which is never touched (the packaged app keeps them in `%LOCALAPPDATA%\Onward`). If something goes wrong, `data\onward.log` has the details.
 

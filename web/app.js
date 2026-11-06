@@ -1168,7 +1168,7 @@ function renderTrip() {
   } else {
     const planning = tripDest || tripVia.length;
     h += `<span class="label">Plan a trip</span><h2>Where do you <em>want to go?</em></h2>
-      <div class="form"><label for="apq">${planning ? "Search for another place" : "Any airfield, town or code"}</label><input type="text" id="apq" placeholder="Faro, LPFR, Santiago…" autocomplete="off" style="width:100%"><span class="hint">Or click a place on the map.</span></div>
+      <div class="form"><label for="apq">${planning ? "Search for another place" : "Any airfield, town or code"}</label><input type="text" id="apq" placeholder="Monterey, KMRY, Sedona…" autocomplete="off" style="width:100%"><span class="hint">Or click a place on the map.</span></div>
       <div class="apres" id="apres"></div>`;
     if (planning) {
       h += `<div class="tplan">
@@ -1672,7 +1672,7 @@ function renderUpdateBanner() {
   if (updRunning) { el.className = "updbar on"; el.innerHTML = `<span>Updating Onward… it restarts on its own, this page reloads when it's back.</span>`; return; }
   el.className = show ? "updbar on" : "updbar";
   el.innerHTML = show ? `<span><b>Onward ${esc(u.latest)} is ready.</b> ${esc((u.notes || [])[0] || "")}${(u.notes || []).length > 1 ? ` <a href="#" id="updmore">and more</a>` : ""}</span>
-    <span class="row"><button class="btn lime" id="updnow">Update now</button><button class="linkbtn" id="updlater">Later</button></span>` : "";
+    <span class="row">${u.frozen ? `<a class="btn lime" href="${esc(u.url || "https://flightsim.to")}" target="_blank" rel="noopener">Get it on flightsim.to</a>` : `<button class="btn lime" id="updnow">Update now</button>`}<button class="linkbtn" id="updlater">Later</button></span>` : "";
   const n = $("#updnow"); if (n) n.onclick = runUpdate;
   const l = $("#updlater"); if (l) l.onclick = () => { updDismissed = u.latest; keys.updbar = null; renderUpdateBanner(); };
   const m = $("#updmore"); if (m) m.onclick = (e) => { e.preventDefault(); document.querySelector('.tabs button[data-tab="settings"]').click(); };
@@ -1716,8 +1716,8 @@ function updatesCard() {
     <p style="margin:0">You have <b>Onward ${esc(S.version)}</b>.${u.available ? ` <b>${esc(u.latest)}</b> is ready.` : u.latest ? " That's the latest." : ""}</p>
     ${u.error ? `<p class="hint" style="color:var(--bad)">${esc(u.error)}</p>` : u.checked ? `<p class="hint">Last checked ${esc(u.checked)}.</p>` : ""}
     ${u.available && (u.notes || []).length ? `<span class="label" style="margin-top:12px">What's new</span><ul class="why">${u.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
-    <div class="row" style="margin-top:12px">${u.available ? `<button class="btn lime" id="supd">Update now</button>` : ""}<button class="btn ghost" id="scheck">Check now</button>${(u.backups || []).length ? `<button class="btn ghost" id="sroll">Go back to ${esc(u.backups[0].split("-")[0])}</button>` : ""}</div>
-    ${u.frozen ? `<p class="hint">This is the packaged app: new versions are downloaded from the releases page.</p>` : ""}
+    <div class="row" style="margin-top:12px">${u.available ? (u.frozen ? `<a class="btn lime" href="${esc(u.url || "https://flightsim.to")}" target="_blank" rel="noopener">Get it on flightsim.to</a>` : `<button class="btn lime" id="supd">Update now</button>`) : ""}<button class="btn ghost" id="scheck">Check now</button>${(u.backups || []).length ? `<button class="btn ghost" id="sroll">Go back to ${esc(u.backups[0].split("-")[0])}</button>` : ""}</div>
+    ${u.frozen ? `<p class="hint">This is the packaged app: new versions are on flightsim.to. Download the new zip and replace the program folder. Your career and settings stay as they are.</p>` : ""}
     <label class="toggle"><input type="checkbox" id="supdchk" ${s.update_check !== false ? "checked" : ""}> Check for updates when Onward starts</label>
     <label for="srepo">Update source (GitHub owner/repository)</label><input type="text" id="srepo" value="${esc(s.update_repo || "")}" placeholder="onward-sim/Onward">
     <label for="stoken">GitHub token (only for a private repository)</label><input type="text" id="stoken" value="${esc(s.update_token || "")}" placeholder="leave empty for a public repository" autocomplete="off">

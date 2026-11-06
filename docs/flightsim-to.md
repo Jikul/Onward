@@ -1,4 +1,5 @@
-# Onward: a solo GA travel career for MSFS 2024
+<!-- Title for the upload form (title case, per flightsim.to rules): Onward: Solo GA Travel Career for MSFS 2024 -->
+# Onward: Solo GA Travel Career for MSFS 2024
 
 *Every flight starts where the last one ended. Free, external, browser-based.*
 
@@ -35,17 +36,33 @@ Onward watches how you treat the airplane: hard landings, overspeed, flap and ge
 
 ## Requirements
 
-- Microsoft Flight Simulator 2024 on Windows
+- **Microsoft Flight Simulator 2024** on Windows. Onward is made for MSFS 2024 and hasn't been tested with MSFS 2020.
+- No other add-ons needed. Onward.exe includes everything, so there's no Python to install.
 - An internet connection for weather, terrain and landmarks (all free, no accounts)
 - Any browser: it also runs on a tablet or a Mac on the same network
 
 ## Installation
 
-Download, unzip anywhere and run Onward.exe. Your browser opens on Onward. Pick a name and a home airfield, and you're off. Onward updates itself from inside the app.
+1. Unzip the download anywhere, for example in Documents.
+2. Double-click **Onward.exe**. A black window opens, and then your browser opens on Onward.
+3. If Windows asks whether to allow Onward through the firewall, allow it. It's only needed to use Onward from a tablet or another computer.
+4. Pick a name and a home airfield, and you're off. The first start downloads the airfield database (about 15 MB), so it takes a minute.
 
-## Good to know
+Keep the black window open while you fly. Onward connects to MSFS by itself, before or after the sim starts.
 
-Airfield and runway data come from real-world sources, so small strips can differ from the sim. Study-level aircraft with their own systems may ignore the sim's failure events. Charts and data are for flight simulation only.
+**Updating:** Onward tells you when a new version is out here on flightsim.to. Download it and replace the program folder. Your career, journal, photos and settings are kept separately in `%LOCALAPPDATA%\Onward`, so nothing is lost.
+
+## Known issues and limitations
+
+- **Weather is the real-world forecast**, not the sim's live weather, so the two can differ. The side view says which forecast it used.
+- **Airfield and runway data come from real-world sources**, so small strips can be missing or placed differently in the sim.
+- **Study-level aircraft** with their own systems may ignore the sim's failure events.
+- **If MSFS doesn't pick up the flight plan**, use Download .pln and load it in the world map.
+- Charts and data are for flight simulation only.
+
+## Source code
+
+Onward is free software under the AGPL-3.0. The complete source code is included in the download (`Onward-<version>-source.zip`).
 
 ## Credits
 
